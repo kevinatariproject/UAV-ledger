@@ -1,17 +1,15 @@
-import os
-import json
-from typing import Optional, Dict, Any
+# services/eth_client.py
 
+import os
 from dotenv import load_dotenv
 from web3 import Web3
 
-# ================================
-# 1) Load environment variables
-# ================================
+# Load variables from .env into environment
 load_dotenv()
 
+# ==== Read values from .env ====
 ETH_RPC_URL = os.getenv("ETH_RPC_URL")
-CHAIN_ID = int(os.getenv("CHAIN_ID", "11155111"))  # Sepolia default
+CHAIN_ID = int(os.getenv("CHAIN_ID", "11155111"))  # default: Sepolia
 ETH_PRIVATE_KEY = os.getenv("ETH_PRIVATE_KEY")
 CONTRACT_ADDRESS_RAW = os.getenv("CONTRACT_ADDRESS")
 
@@ -24,149 +22,153 @@ if not ETH_PRIVATE_KEY:
 if not CONTRACT_ADDRESS_RAW:
     raise RuntimeError("CONTRACT_ADDRESS is not set in .env")
 
-# ===================================
-# 2) Connect to Sepolia via Web3
-# ===================================
+# Create a Web3 object that talks to Sepolia via your Infura URL
 w3 = Web3(Web3.HTTPProvider(ETH_RPC_URL))
 
 # Normalize contract address to checksum format
 CONTRACT_ADDRESS = Web3.to_checksum_address(CONTRACT_ADDRESS_RAW)
 
-# Derive the public address from the private key
+# Derive the public address from the private key (this is your Sepolia wallet)
 ACCOUNT = w3.eth.account.from_key(ETH_PRIVATE_KEY)
 ACCOUNT_ADDRESS = ACCOUNT.address
 
-# ===================================
-# 3) Contract ABI (from your metadata)
-#    We keep it as JSON string and parse it.
-# ===================================
-ABI_JSON = """
-[
-  {
-    "name": "FlightLogged",
-    "type": "event",
-    "inputs": [
-      {
-        "name": "missionId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "s3Key",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      },
-      {
-        "name": "timestamp",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "uploader",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "name": "flightLogs",
-    "type": "function",
-    "inputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "s3Key",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "timestamp",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "uploader",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "name": "getFlight",
-    "type": "function",
-    "inputs": [
-      {
-        "name": "missionId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "s3Key",
-        "type": "string",
-        "internalType": "string"
-      },
-      {
-        "name": "timestamp",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "uploader",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "name": "logFlight",
-    "type": "function",
-    "inputs": [
-      {
-        "name": "missionId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "s3Key",
-        "type": "string",
-        "internalType": "string"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  }
+# ===========================
+# FlightLogRegistry ABI
+# (copied from Remix, simplified to just what we need)
+# ===========================
+FLIGHT_LOG_REGISTRY_ABI = [
+    {
+        "anonymous": False,
+        "inputs": [
+            {
+                "indexed": True,
+                "internalType": "bytes32",
+                "name": "missionId",
+                "type": "bytes32",
+            },
+            {
+                "indexed": False,
+                "internalType": "string",
+                "name": "s3Key",
+                "type": "string",
+            },
+            {
+                "indexed": False,
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256",
+            },
+            {
+                "indexed": True,
+                "internalType": "address",
+                "name": "uploader",
+                "type": "address",
+            },
+        ],
+        "name": "FlightLogged",
+        "type": "event",
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32",
+            }
+        ],
+        "name": "flightLogs",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "s3Key",
+                "type": "string",
+            },
+            {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256",
+            },
+            {
+                "internalType": "address",
+                "name": "uploader",
+                "type": "address",
+            },
+        ],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "missionId",
+                "type": "bytes32",
+            }
+        ],
+        "name": "getFlight",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "s3Key",
+                "type": "string",
+            },
+            {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256",
+            },
+            {
+                "internalType": "address",
+                "name": "uploader",
+                "type": "address",
+            },
+        ],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "missionId",
+                "type": "bytes32",
+            },
+            {
+                "internalType": "string",
+                "name": "s3Key",
+                "type": "string",
+            },
+        ],
+        "name": "logFlight",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function",
+    },
 ]
-"""
 
-CONTRACT_ABI = json.loads(ABI_JSON)
 
-# Create a contract object
-contract = w3.eth.contract(
-    address=CONTRACT_ADDRESS,
-    abi=CONTRACT_ABI,
-)
-
-# ===================================
-# 4) Helper: basic chain info (already used)
-# ===================================
-def get_chain_info() -> Dict[str, Any]:
+def get_contract():
     """
-    Return basic info about the chain we are connected to
-    and the contract/account we use.
+    Build a Web3 contract object for FlightLogRegistry.
+    """
+    return w3.eth.contract(address=CONTRACT_ADDRESS, abi=FLIGHT_LOG_REGISTRY_ABI)
+
+
+def mission_id_to_bytes32(mission_id: str) -> bytes:
+    """
+    Convert a human-readable mission_id string into bytes32.
+
+    Here we use keccak hash so:
+      - input: "mission-123"
+      - result: 32-byte hash used as key in the contract.
+    """
+    return Web3.keccak(text=mission_id)
+
+
+def get_chain_info():
+    """
+    Simple helper function that returns basic info
+    about the chain we are connected to and the contract.
     """
     connected = w3.is_connected()
     node_chain_id = None
@@ -186,86 +188,82 @@ def get_chain_info() -> Dict[str, Any]:
         "account_address": ACCOUNT_ADDRESS,
     }
 
-# ===================================
-# 5) Internal helper: missionId → bytes32
-# ===================================
-def _mission_id_to_bytes32(mission_id: str) -> bytes:
+
+def log_flight_on_chain(mission_id: str, s3_key: str):
     """
-    Convert a human-readable mission ID string into a bytes32 value.
+    Call logFlight(missionId, s3Key) on the smart contract.
 
-    We use keccak(text=mission_id) so the same mission_id string
-    always maps to the same bytes32.
-    """
-    return Web3.keccak(text=mission_id)
-
-
-# ===================================
-# 6) Write: logFlight on-chain
-# ===================================
-def log_flight_on_chain(mission_id: str, s3_key: str) -> str:
-    """
-    Store or update a flight log on-chain.
-
-    - mission_id: a human-readable ID like 'mission-123'
-    - s3_key: the S3 object key where the log is stored
-
-    Returns: transaction hash (hex string)
+    Steps:
+      1. Convert mission_id string -> bytes32 key.
+      2. Build transaction.
+      3. Sign transaction with our private key.
+      4. Send to Sepolia and wait for receipt.
     """
     if not w3.is_connected():
         raise RuntimeError("Not connected to Ethereum node")
 
-    mission_bytes = _mission_id_to_bytes32(mission_id)
+    contract = get_contract()
+    mission_key = mission_id_to_bytes32(mission_id)
 
     # Build the transaction
     nonce = w3.eth.get_transaction_count(ACCOUNT_ADDRESS)
-    gas_price = w3.eth.gas_price  # simple legacy-style gas
 
-    tx = contract.functions.logFlight(mission_bytes, s3_key).build_transaction(
+    tx = contract.functions.logFlight(mission_key, s3_key).build_transaction(
         {
             "from": ACCOUNT_ADDRESS,
             "nonce": nonce,
-            "gas": 200000,        # rough gas limit
-            "gasPrice": gas_price,
             "chainId": CHAIN_ID,
+            "gasPrice": w3.eth.gas_price,
         }
     )
 
-    # Sign and send
+    # Sign with our private key
     signed_tx = w3.eth.account.sign_transaction(tx, private_key=ETH_PRIVATE_KEY)
-    tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
-    # Return hex string so we can show it in the UI / logs
-    return tx_hash.hex()
+    # Send and wait for receipt
+    tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    return {
+        "mission_id": mission_id,
+        "mission_key": mission_key.hex(),
+        "s3_key": s3_key,
+        "transaction_hash": tx_hash.hex(),
+        "block_number": receipt.block_number,
+        "status": receipt.status,
+    }
 
 
-# ===================================
-# 7) Read: getFlight from chain
-# ===================================
-def get_flight_from_chain(mission_id: str) -> Optional[Dict[str, Any]]:
+def get_flight_from_chain(mission_id: str):
     """
-    Read a flight log from the chain.
+    Call getFlight(missionId) on the smart contract.
 
     Returns:
       {
-        "s3_key": str,
-        "timestamp": int,
-        "uploader": str
+        "mission_id": "...",
+        "mission_key": "0x...",
+        "s3_key": "...",
+        "timestamp": <int>,
+        "uploader": "0x...",
+        "exists": True/False
       }
-    or None if nothing found.
     """
     if not w3.is_connected():
         raise RuntimeError("Not connected to Ethereum node")
 
-    mission_bytes = _mission_id_to_bytes32(mission_id)
+    contract = get_contract()
+    mission_key = mission_id_to_bytes32(mission_id)
 
-    s3_key, timestamp, uploader = contract.functions.getFlight(mission_bytes).call()
+    s3_key, timestamp, uploader = contract.functions.getFlight(mission_key).call()
 
-    # If no log is stored, s3_key will likely be an empty string.
-    if s3_key == "":
-        return None
+    # If no log yet, s3_key will be empty string.
+    exists = s3_key != ""
 
     return {
+        "mission_id": mission_id,
+        "mission_key": mission_key.hex(),
         "s3_key": s3_key,
         "timestamp": int(timestamp),
         "uploader": uploader,
+        "exists": exists,
     }
