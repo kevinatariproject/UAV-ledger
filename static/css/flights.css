@@ -1,0 +1,49 @@
+@import url('variables.css');
+
+/* Layout for the flights grid */
+.flights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+  align-items: stretch;
+}
+
+/* Large square card */
+.flight-card {
+  background: var(--color-primary);
+  color: var(--color-secondary-alt);
+  border-radius: 16px;
+  text-decoration: none;
+  width: 100%;
+  aspect-ratio: 1 / 1;             /* perfect square */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.flight-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 26px rgba(0,0,0,0.18);
+  background: var(--color-primary-alt);
+}
+
+.flight-card .title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.flight-card .meta {
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+/* Optional: page header spacing */
+.page-header {
+  margin: 8px 0 18px;
+}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Flights · UAV Ledger{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/flights.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="container">
+  <h1 class="page-header">Flights</h1>
+
+  {% if flights %}
+    <div class="flights-grid">
+      {% for fid in flights %}
+        <a class="flight-card" href="{% url 'flight_versions_page' flight_id=fid %}">
+          <div class="title">{{ fid }}</div>
+          <div class="meta">View versions →</div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No flights found yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

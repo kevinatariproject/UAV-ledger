@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ flight_id }} · Versions · UAV Ledger{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/versions.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="container">
+  <h1>Flight {{ flight_id }}</h1>
+  <p class="subtle">S3 key: <code class="key-inline">{{ key }}</code></p>
+
+  {% if versions %}
+    <div class="versions-grid">
+      {% for v in versions %}
+        <div class="version-card">
+          <div class="v-title">{{ v.version_id }}</div>
+          <div class="v-meta">
+            {% if v.last_modified %}<span>{{ v.last_modified|date:"Y-m-d H:i:s T" }}</span>{% endif %}
+            <span>{{ v.size }} bytes</span>
+            {% if v.is_latest %}<span class="badge">latest</span>{% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No versions found.</p>
+  {% endif %}
+
+  <a href="{% url 'flights_page' %}" class="button-primary">← Back to flights</a>
+</section>
+{% endblock %}
